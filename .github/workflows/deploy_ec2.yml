@@ -1,0 +1,80 @@
+name: Deploy Laravel Pro to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Instalar dependencias PHP
+      - name: Install PHP dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+      # Instalar dependencias Node
+      - name: Install Node dependencies
+        run: npm install
+
+      # Build de assets
+      - name: Build assets
+        run: npm run build
+
+      # Preparar artifact para deploy
+      - name: Prepare artifact
+        run: |
+          # Excluye archivos sensibles
+          rm -rf node_modules tests .github .git
+          zip -r laravel-deploy.zip . -x ".env" -x "storage/*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: laravel-deploy
+          path: laravel-deploy.zip
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: laravel-deploy
+
+      # Copiar artifact al servidor
+      - name: Upload to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "laravel-deploy.zip"
+          target: "/var/www/laravel"
+
+      # Ejecutar comandos de deploy en EC2
+      - name: Run deploy commands on EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /var/www/laravel
+            unzip -o laravel-deploy.zip -d .
+            rm laravel-deploy.zip
+            php artisan migrate --force
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan route:clear
+            php artisan view:clear
+            php artisan config:cache
+            sudo systemctl restart php-fpm
+            sudo systemctl restart httpd   # Amazon Linux
+            # sudo systemctl restart apache2   # Ubuntu/Debian
