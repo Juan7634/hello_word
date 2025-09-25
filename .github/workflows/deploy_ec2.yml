@@ -70,12 +70,5 @@ jobs:
             cd /var/www/laravel
             unzip -o laravel-deploy.zip -d .
             rm laravel-deploy.zip
-            php artisan migrate --force
-            php artisan config:clear
-            php artisan cache:clear
-            php artisan route:clear
-            php artisan view:clear
-            php artisan config:cache
-            sudo systemctl restart php-fpm
-            sudo systemctl restart httpd   # Amazon Linux
+            cp .env.example .env            
             # sudo systemctl restart apache2   # Ubuntu/Debian
