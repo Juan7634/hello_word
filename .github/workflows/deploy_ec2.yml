@@ -3,7 +3,8 @@ name: Deploy Laravel Pro to EC2
 on:
   push:
     branches:
-      - main
+      - master
+      - production
 
 jobs:
   build:
