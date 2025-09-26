@@ -39,19 +39,19 @@ jobs:
             --exclude='.git' \
             --exclude='node_modules' \
             --exclude='storage' \
+            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
             ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
       - name: Generate application key
         if: env.FIRST_DEPLOY == 'true'
         run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "cd /var/www/html && cp .env,example .env php artisan key:generate"
+          ssh ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "cd /var/www/html && cp .env,example .env php artisan key:generate"
       - name: Run deployment commands
         run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd /var/www/html
             php artisan migrate --force
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
           EOF
-     
      
