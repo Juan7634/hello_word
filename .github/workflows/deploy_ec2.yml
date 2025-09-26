@@ -3,53 +3,38 @@ name: Deploy Laravel Backend to EC2
 on:
   push:
     branches:
-      - production
+    - production
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: |
-          composer install --no-dev --optimize-autoloader
-          npm ci
-          npm run build
+    - name: Install dependencies
+      run: |
+        composer install --no-dev --optimize-autoloader
+        npm ci
+        npm run build
 
-      - name: Determine if first deployment
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+    - name: Determine if first deployment
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Verify SSH connection
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection established'"
-          
-      - name: Deploy application code
-        run: |
-          # Definir archivo crítico en el servidor
-          REMOTE_FILE="/var/www/html/.env"
+    - name: Verify SSH connection
+      run: |
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection established'"
 
-          # Verificar si existe en EC2
-          if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ -f $REMOTE_FILE ]"; then
-            echo "$REMOTE_FILE existe en EC2, excluyéndolo del rsync"
-            RSYNC_EXCLUDES="--exclude='.git'"
-          else
-            echo "$REMOTE_FILE no existe en EC2, enviando todo excepto archivos comunes"
-            RSYNC_EXCLUDES="--exclude='.git'"
-          fi
-
-          # Ejecutar rsync
-          rsync -avz --delete \
-                --exclude='.git/' \ 
-                --exclude='.github/' \ 
-                --exclude='node_modules/' \ 
-                --exclude='.env' \ 
-                --exclude='.env.example' \
-                -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-                ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
+    - name: Deploy application code
+      run: |
+        # Ejecutar rsync
+        rsync -avz --delete \
+            --exclude='.git/' \
+            --exclude='node_modules/' \
+            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
