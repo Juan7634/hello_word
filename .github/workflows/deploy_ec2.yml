@@ -45,14 +45,17 @@ jobs:
             # Ejecutar rsync usando la variable
             rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" $RSYNC_EXCLUDES ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
 
-      - name: Check if first deploy
-        id: check_deploy
+      - name: Check if first deploy        
         run: |
-          if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ ! -f /var/www/html/.env ]"; then
-            echo "FIRST_DEPLOY=true" >> $GITHUB_ENV
-          else
-            echo "FIRST_DEPLOY=false" >> $GITHUB_ENV
-          fi
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
+            if [ ! -f /var/www/html/.env ]; then
+              echo 'FIRST_DEPLOY=true'
+            else
+              echo 'FIRST_DEPLOY=false'
+            fi
+          " > deploy_status.txt
+          FIRST_DEPLOY=$(cat deploy_status.txt)
+          echo "FIRST_DEPLOY=$FIRST_DEPLOY" >> $GITHUB_ENV
 
       - name: Generate application key
         if: env.FIRST_DEPLOY == 'true'
@@ -67,7 +70,6 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd /var/www/html
-            php artisan migrate --force
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
