@@ -33,7 +33,7 @@ jobs:
       - name: Deploy application code
         run: |
           # Definir exclusiones básicas
-          RSYNC_EXCLUDES="--exclude='.env' --exclude='.git' --exclude='node_modules'"
+          RSYNC_EXCLUDES="--exclude='.env' --exclude='.git' --exclude='node_modules' "
 
           # Si ya existe package.json (no es primer deploy), también excluimos storage
           if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ -f /var/www/html/package.json ]"; then
