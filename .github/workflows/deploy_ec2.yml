@@ -51,7 +51,7 @@ jobs:
               cd /var/www/html &&
               cp .env.example .env &&
               php artisan key:generate
-              echo 'Application key generated and .env file created.'
+              echo 'Application key generated and .env file created.';
             fi      
           "
 
