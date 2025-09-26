@@ -38,10 +38,10 @@ jobs:
           # Verificar si existe en EC2
           if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ -f $REMOTE_FILE ]"; then
             echo "$REMOTE_FILE existe en EC2, excluyéndolo del rsync"
-            RSYNC_EXCLUDES="--exclude='.git/' --exclude='.github/' --exclude='node_modules/'  --exclude='.env' --exclude='.env.* --exclude='storage/' --exclude='storage/framework/cache/' --exclude='storage/framework/sessions/' --exclude='storage/logs/' --exclude='public/hot'"
+            RSYNC_EXCLUDES="--exclude='.git/'"
           else
             echo "$REMOTE_FILE no existe en EC2, enviando todo excepto archivos comunes"
-            RSYNC_EXCLUDES="--exclude='.git/' --exclude='.github/' --exclude='node_modules/' --exclude='.env.example'  --exclude='.env.* --exclude='storage/framework/cache/' --exclude='storage/framework/sessions/' --exclude='storage/logs/' --exclude='public/hot'"
+            RSYNC_EXCLUDES="--exclude='.git/'"
           fi
 
           # Ejecutar rsync
