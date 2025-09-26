@@ -19,27 +19,40 @@ jobs:
           npm ci
           npm run build
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Setup SSH
+      - name: Determine if first deployment
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Verify SSH connection
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection established'"
+      - name : Create deployment directory
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p /var/www/html/web"
+
       - name: Deploy application code
         run: |
-          rsync -avz --delete --no-time \
+          RSYNC_EXCLUDES="--exclude='.env' --exclude='.git' --exclude='node_modules'"
+          if [ "${{ env.FIRST_DEPLOY }}" != "true" ]; then
+            RSYNC_EXCLUDES="$RSYNC_EXCLUDES --exclude='storage'"
+          fi
+
+          rsync -avz --delete \
             -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-            --exclude='.env' \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='storage' \
+            $RSYNC_EXCLUDES
             ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
+
+      - name: Check if first deploy
+        id: check_deploy
+        run: |
+          if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ ! -f /var/www/html/.env ]"; then
+            echo "FIRST_DEPLOY=true" >> $GITHUB_ENV
+          else
+            echo "FIRST_DEPLOY=false" >> $GITHUB_ENV
+          fi
 
       - name: Generate application key
         if: env.FIRST_DEPLOY == 'true'
