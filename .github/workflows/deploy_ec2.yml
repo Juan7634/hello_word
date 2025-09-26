@@ -35,15 +35,15 @@ jobs:
 
       - name: Deploy application code
         run: |
-          $RSYNC_EXCLUDES="--exclude='.env' --exclude='.git' --exclude='node_modules'"
-          if [ "${{ env.FIRST_DEPLOY }}" != "true" ]; then
-            $RSYNC_EXCLUDES="$RSYNC_EXCLUDES --exclude='storage'"
-          fi
+            RSYNC_EXCLUDES="--exclude='.env' --exclude='.git'"
 
-          rsync -avz --delete \
-            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-            $RSYNC_EXCLUDES
-            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
+            # Si no es primer deploy, agregamos storage y node_modules a los excluidos
+            if [ "${{ env.FIRST_DEPLOY }}" != "true" ]; then
+              RSYNC_EXCLUDES="$RSYNC_EXCLUDES --exclude='storage' --exclude='node_modules'"
+            fi
+
+    # Ejecutar rsync usando la variable
+    rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" $RSYNC_EXCLUDES ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
 
       - name: Check if first deploy
         id: check_deploy
