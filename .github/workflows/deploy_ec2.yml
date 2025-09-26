@@ -35,11 +35,11 @@ jobs:
       - name: Deploy application code
         run: |
           rsync -avz --delete \
+            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
             --exclude='.env' \
             --exclude='.git' \
             --exclude='node_modules' \
             --exclude='storage' \
-            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
             ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
       - name: Generate application key
         if: env.FIRST_DEPLOY == 'true'
