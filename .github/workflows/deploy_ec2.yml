@@ -35,15 +35,12 @@ jobs:
 
       - name: Check if first deploy        
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
-            if [ ! -f /var/www/html/.env ]; then
-              echo 'FIRST_DEPLOY=true'
-            else
-              echo 'FIRST_DEPLOY=false'
-            fi
-          " > deploy_status.txt
-          FIRST_DEPLOY=$(cat deploy_status.txt)
+          # Ejecuta SSH y guarda el resultado en FIRST_DEPLOY
+          FIRST_DEPLOY=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+            "if [ ! -f /var/www/html/.env ]; then echo 'true'; else echo 'false'; fi")
+          
           echo "FIRST_DEPLOY=$FIRST_DEPLOY" >> $GITHUB_ENV
+          echo "First deploy? $FIRST_DEPLOY"
 
       - name: Deploy application code
         run: |
@@ -60,7 +57,7 @@ jobs:
       
 
       - name: Generate application key
-        if: env.FIRST_DEPLOY == 'true'
+        if: "${{ env.FIRST_DEPLOY }} == 'true'"
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
             cd /var/www/html &&
