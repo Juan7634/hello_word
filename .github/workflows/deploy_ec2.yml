@@ -13,13 +13,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-        #Instalar dependencias
       - name: Install dependencies
         run: |
           composer install --no-dev --optimize-autoloader
@@ -31,7 +24,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Sincronizar código
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
       - name: Deploy application code
         run: |
           rsync -avz --delete \
@@ -41,17 +40,22 @@ jobs:
             --exclude='node_modules' \
             --exclude='storage' \
             ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
+
       - name: Generate application key
         if: env.FIRST_DEPLOY == 'true'
         run: |
-          ssh ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "cd /var/www/html && cp .env,example .env php artisan key:generate"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
+            cd /var/www/html &&
+            cp .env.example .env &&
+            php artisan key:generate
+          "
+
       - name: Run deployment commands
         run: |
-          ssh ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd /var/www/html
             php artisan migrate --force
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
           EOF
-     
