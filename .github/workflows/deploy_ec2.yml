@@ -29,15 +29,12 @@ jobs:
       - name: Verify SSH connection
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection established'"
-      - name : Create deployment directory
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p /var/www/html/web"
-
+     
       - name: Check if first deploy        
         run: |
           # Ejecuta SSH y guarda el resultado en FIRST_DEPLOY
           FIRST_DEPLOY=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "if [ ! -f /var/www/html/public ]; then echo 'true'; else echo 'false'; fi")
+            "if [ ! -f /var/www/html/package.json ]; then echo 'true'; else echo 'false'; fi")
           
           echo "FIRST_DEPLOY=$FIRST_DEPLOY" >> $GITHUB_ENV
           echo "First deploy? $FIRST_DEPLOY"
