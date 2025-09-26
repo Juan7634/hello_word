@@ -19,12 +19,7 @@ jobs:
           npm ci
           npm run build
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Setup SSH
+      - name: Determine if first deployment
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
@@ -33,7 +28,7 @@ jobs:
 
       - name: Deploy application code
         run: |
-          rsync -avz --delete --no-times \
+          rsync -avz --delete --no-time \
             -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
             --exclude='.env' \
             --exclude='.git' \
@@ -50,4 +45,12 @@ jobs:
             php artisan key:generate
           "
 
-    
+      - name: Run deployment commands
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /var/www/html
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+          EOF
