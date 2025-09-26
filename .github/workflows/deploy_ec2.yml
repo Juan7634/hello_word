@@ -31,18 +31,13 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection established'"
           
       - name: Deploy application code
-        run: |
-            RSYNC_EXCLUDES="--exclude='.env' --exclude='.git' --exclude='node_modules'"
-
-            # Si no es primer deploy, agregamos storage y node_modules a los excluidos
-            if [ -f /var/www/html/package.json ]; then
-              RSYNC_EXCLUDES="$RSYNC_EXCLUDES --exclude='storage'"
-            fi
-
-            # Ejecutar rsync usando la variable
-            rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" $RSYNC_EXCLUDES ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
-
-      
+         run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+            --exclude='.env' \
+            --exclude='.git' \
+            --exclude='node_modules' \           
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
 
       - name: Generate application key        
         run: |
