@@ -28,7 +28,7 @@ jobs:
 
       - name: Deploy application code
         run: |
-          rsync -avz --delete --no-time \
+          rsync -avz --delete --no-times \
             -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
             --exclude='.env' \
             --exclude='.git' \
