@@ -1,4 +1,4 @@
-name: Deploy Laravel Pro to EC2
+name: Deploy Laravel Backend to EC2
 
 on:
   push:
@@ -13,69 +13,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Instalar dependencias PHP
-      - name: Install PHP dependencies
-        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-
-      # Instalar dependencias Node
-      - name: Install Node dependencies
-        run: npm install
-
-      # Build de assets
-      - name: Build assets
-        run: npm run build
-
-      # Preparar artifact para deploy
-      - name: Prepare artifact
+      - name: Setup SSH
         run: |
-          rm -rf node_modules tests .github .git
-          zip -r laravel-deploy.zip . -x ".env" -x "storage/*"
-          echo "ZIP contents:"
-          unzip -l laravel-deploy.zip
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: laravel-deploy
-          path: laravel-deploy.zip
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        #Instalar dependencias
+      - name: Install dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader
+          npm ci
+          npm run build
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: laravel-deploy
-          path: .
-
-      - name: Upload to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "laravel-deploy.zip"
-          target: "/var/www/laravel"
-
-      - name: Run deploy commands on EC2
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /var/www/laravel
-            unzip -o laravel-deploy.zip -d .
-            rm laravel-deploy.zip
+      # Sincronizar código
+      - name: Deploy application code
+        run: |
+          rsync -avz --delete \
+            --exclude='.env' \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='storage' \
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
+      - name: Generate application key
+        if: env.FIRST_DEPLOY == 'true'
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "cd /var/www/html && cp .env,example .env php artisan key:generate"
+      - name: Run deployment commands
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /var/www/html
             php artisan migrate --force
-            php artisan config:clear
-            php artisan cache:clear
-            php artisan route:clear
-            php artisan view:clear
             php artisan config:cache
-            sudo systemctl restart php-fpm
-            sudo systemctl restart httpd   # Amazon Linux
-            # sudo systemctl restart apache2   # Ubuntu/Debian
-            echo "Deployment completed."
+            php artisan route:cache
+            php artisan view:cache
+          EOF
+     
