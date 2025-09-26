@@ -35,9 +35,9 @@ jobs:
 
       - name: Deploy application code
         run: |
-          RSYNC_EXCLUDES="--exclude='.env' --exclude='.git' --exclude='node_modules'"
+          $RSYNC_EXCLUDES="--exclude='.env' --exclude='.git' --exclude='node_modules'"
           if [ "${{ env.FIRST_DEPLOY }}" != "true" ]; then
-            RSYNC_EXCLUDES="$RSYNC_EXCLUDES --exclude='storage'"
+            $RSYNC_EXCLUDES="$RSYNC_EXCLUDES --exclude='storage'"
           fi
 
           rsync -avz --delete \
