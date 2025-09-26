@@ -33,7 +33,8 @@ jobs:
       - name: Deploy application code
         run: |
           rsync -avz --delete \
-            --exclude='./.git/' \
+            --exclude='.git/' \
+            --exclude='.github/' \
             --exclude='node_modules/' \
             --exclude='.env' \
             --exclude='.env.example' \
