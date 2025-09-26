@@ -45,6 +45,11 @@ jobs:
           fi
 
           # Ejecutar rsync
-          rsync -avz --delete $RSYNC_EXCLUDES \
+          rsync -avz --delete \
+                --exclude='.git/' \ 
+                --exclude='.github/' \ 
+                --exclude='node_modules/' \ 
+                --exclude='.env' \ 
+                --exclude='.env.example' \
                 -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
                 ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
