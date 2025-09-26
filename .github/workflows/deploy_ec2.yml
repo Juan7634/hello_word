@@ -32,8 +32,10 @@ jobs:
           
       - name: Deploy application code
         run: |
-          RSYNC_EXCLUDES="--exclude=node_modules/ --exclude=.git/ --exclude=.env --exclude=.env.example"
-
-          rsync -avz --delete $RSYNC_EXCLUDES \
-                -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-                ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
+          rsync -avz --delete \
+            --exclude='./.git/' \
+            --exclude='node_modules/' \
+            --exclude='.env' \
+            --exclude='.env.example' \
+            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
