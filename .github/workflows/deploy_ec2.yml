@@ -32,12 +32,16 @@ jobs:
           
       - name: Deploy application code
         run: |
-          rsync -avz --delete \
-            
-            --exclude='.env' \
-            --exclude='.git' \
-            --exclude='node_modules' \           
-            ./ -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/"
+          # Definir exclusiones básicas
+          RSYNC_EXCLUDES="--exclude='.env' --exclude='.git' --exclude='node_modules'"
+
+          # Si ya existe package.json (no es primer deploy), también excluimos storage
+          if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ -f /var/www/html/package.json ]"; then
+            RSYNC_EXCLUDES="$RSYNC_EXCLUDES --exclude='storage'"
+          fi
+
+          # Ejecutar rsync usando la variable de exclusiones
+          rsync -avz --delete $RSYNC_EXCLUDES -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
 
       - name: Generate application key        
         run: |
