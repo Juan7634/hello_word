@@ -3,77 +3,66 @@ name: Deploy Laravel Backend to EC2
 on:
   push:
     branches:
-      - production
+    - production
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: |
-          composer install --no-dev --optimize-autoloader
-          npm ci
-          npm run build
+    - name: Install dependencies
+      run: |
+        composer install --no-dev --optimize-autoloader
+        npm ci
+        npm run build
 
-      - name: SSH Setup
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+    - name: SSH Setup
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Verify SSH connection
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection established'"
+    - name: Verify SSH connection
+      run: |
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection established'"
 
-      - name: Deploy application code
-        run: |
-          # Definir exclusiones básicas
+    - name: Deploy application code
+      run: |
+        # Definir exclusiones básicas
 
-          # Si ya existe package.json (no es primer deploy), también excluimos storage
-          if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ -f /var/www/html/package.json ]"; then
-            rsync -avz --delete \
-              --exclude='.git/' \
-              --exclude='.github/' \
-              --exclude='.gitignore' \
-              --exclude='.gitattributes' \
-              --exclude='.env' \
-              --exclude='storage/' \
-              --exclude='node_modules/' \
-              --exclude='vendor/' \
-              -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-              ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
-          else
-             rsync -avz --delete \
-              --exclude='.git/' \
-              --exclude='.github/' \
-              --exclude='.env' \
-              --exclude='.gitignore' \
-              --exclude='.gitattributes' \
-              --exclude='node_modules/' \
-              -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-              ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
-          fi
+        # Si ya existe package.json (no es primer deploy), también excluimos storage
+        if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ -f /var/www/html/package.json ]"; then
+          rsync -avz --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='.gitattributes' \
+            --exclude='.env' \
+            --exclude='storage/' \
+            --exclude='node_modules/' \
+            --exclude='vendor/' \
+            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
+        else
+           rsync -avz --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.env' \
+            --exclude='.gitignore' \
+            --exclude='.gitattributes' \
+            --exclude='node_modules/' \
+            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
+        fi
 
-      - name: Generate application key
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
-           if [ ! -f /var/www/html/package.json ]; then
-              cd /var/www/html &&
-              cp .env.example .env &&
-              php artisan key:generate
-              echo 'Application key generated and .env file created.';
-            fi      
-          "
-      - name: Run deployment commands
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            cd /var/www/html
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-          EOF
+    - name: Generate application key
+      run: |
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
+         if [ ! -f /var/www/html/.env ]; then              
+            echo 'Application key generated and .env file created.';
+          fi      
+        "
