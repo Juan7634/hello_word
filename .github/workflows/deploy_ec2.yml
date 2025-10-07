@@ -73,6 +73,7 @@ jobs:
               echo 'Application key generated and .env file created.'
 
           else
+            cd /var/www/html &&
             php artisan migrate --force && 
             echo 'Existe archivo.'
           fi      
