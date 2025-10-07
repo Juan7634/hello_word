@@ -66,8 +66,8 @@ jobs:
               cd /var/www/html &&
               cp .env.example .env &&
               php artisan key:generate &&
-              chmod -R 775 storage/
-              chown -R ec2-user:apache storage/
+              chmod -R 775 storage/ &&
+              chown -R ec2-user:apache storage/ &&
               echo 'Application key generated and .env file created.'
 
           else
