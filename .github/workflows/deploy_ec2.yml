@@ -26,18 +26,18 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Verify SSH connection
-        run: |
+    - name: Verify SSH connection
+      run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection established'"
           
-      - name: Deploy application code
-        run: |
-          # Definir exclusiones básicas
+    - name: Deploy application code
+      run: |
+        # Definir exclusiones básicas
 
-          # Si ya existe package.json (no es primer deploy), también excluimos storage
-          if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ -f /var/www/html/package.json ]"; then
-            echo "Not first deployment, excluding storage directory"
-          else
-            echo "First deployment, not excluding storage directory"
-          fi
+        # Si ya existe package.json (no es primer deploy), también excluimos storage
+        if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ -f /var/www/html/package.json ]"; then
+          echo "Not first deployment, excluding storage directory"
+        else
+          echo "First deployment, not excluding storage directory"
+        fi
 
