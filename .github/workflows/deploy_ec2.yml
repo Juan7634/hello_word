@@ -36,9 +36,24 @@ jobs:
 
           # Si ya existe package.json (no es primer deploy), también excluimos storage
           if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ -f /var/www/html/package.json ]"; then
-            echo "Not first deployment, excluding storage directory"
+            rsync -avz --delete \
+              --exclude='.git/' \
+              --exclude='.gitignore' \
+              --exclude='.gitattributes' \
+              --exclude='.env' \
+              --exclude='storage/' \
+              --exclude='node_modules/' \
+              --exclude='vendor/' \
+              -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+              ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
           else
-            echo "First deployment, not excluding storage directory"
+             rsync -avz --delete \
+              --exclude='.git/' \
+              --exclude='.gitignore' \
+              --exclude='.gitattributes' 
+              --exclude='node_modules/' \
+              -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+              ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
           fi
 
 
