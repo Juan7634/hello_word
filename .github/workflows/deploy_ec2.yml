@@ -32,34 +32,12 @@ jobs:
           
       - name: Deploy application code
         run: |
-            RSYNC_EXCLUDES="--exclude='.env' --exclude='.git' --exclude='node_modules'"
+          # Definir exclusiones básicas
 
-            # Si no es primer deploy, agregamos storage y node_modules a los excluidos
-            if [ -f /var/www/html/package.json ]; then
-              RSYNC_EXCLUDES="$RSYNC_EXCLUDES --exclude='storage'"
-            fi
+          # Si ya existe package.json (no es primer deploy), también excluimos storage
+          if ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "[ -f /var/www/html/package.json ]"; then
+            echo "Not first deployment, excluding storage directory"
+          else
+            echo "First deployment, not excluding storage directory"
+          fi
 
-            # Ejecutar rsync usando la variable
-            rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" $RSYNC_EXCLUDES ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
-
-      
-
-      - name: Generate application key        
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
-           if [ ! -f /var/www/html/package.json ]; then
-              cd /var/www/html &&
-              cp .env.example .env &&
-              php artisan key:generate
-              echo 'Application key generated and .env file created.';
-            fi      
-          "
-
-      - name: Run deployment commands
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            cd /var/www/html
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-          EOF
