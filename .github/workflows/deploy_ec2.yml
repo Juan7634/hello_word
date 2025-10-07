@@ -50,7 +50,7 @@ jobs:
              rsync -avz --delete \
               --exclude='.git/' \
               --exclude='.gitignore' \
-              --exclude='.gitattributes' 
+              --exclude='.gitattributes' \
               --exclude='node_modules/' \
               -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
               ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
