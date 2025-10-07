@@ -65,18 +65,18 @@ jobs:
           if [ ! -f /var/www/html/.env ]; then              
               cd /var/www/html &&
               cp .env.example .env &&
-              php artisan key:generate
-              echo 'Application key generated and .env file created.';
+              php artisan key:generate &&
+              echo 'Application key generated and .env file created.'
 
           else
-            echo 'Existe archivo.';
+            echo 'Existe archivo.'
           fi      
         "
     - name: Run deployment commands
       run: |
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          cd /var/www/html
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
+          cd /var/www/html &&
+          php artisan config:cache  &&
+          php artisan route:cache && 
+          php artisan view:cache &&
         EOF
